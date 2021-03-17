@@ -14,61 +14,64 @@ NoSidebar: true
 @{
     // We should only have one alias here
     var aliasGroups =
-        Documents["DslAliases"]
-            .Single()
-            .DocumentList(Keys.GroupDocuments)
-            .SelectMany(x => x.DocumentList(CodeAnalysisKeys.Members))
-            .Where(x => x.String("Kind") == "Method")
+        Outputs.FromPipeline("DslAliases")
+            .SingleOrDefault()
+            ?.GetDocumentList(Keys.GroupKey)
+            .SelectMany(x => x.GetDocumentList(CodeAnalysisKeys.Members))
+            .Where(x => x.GetString("Kind") == "Method")
             .Select(x => new 
             {
                 Doc = x,
-                MethodAlias = x.DocumentList(CodeAnalysisKeys.Attributes).Any(attr => attr.String(CodeAnalysisKeys.Name) == "CakeMethodAliasAttribute"),
-                PropertyAlias = x.DocumentList(CodeAnalysisKeys.Attributes).Any(attr => attr.String(CodeAnalysisKeys.Name) == "CakePropertyAliasAttribute")
+                MethodAlias = x.GetDocumentList(CodeAnalysisKeys.Attributes).Any(attr => attr.GetString(CodeAnalysisKeys.Name) == "CakeMethodAliasAttribute"),
+                PropertyAlias = x.GetDocumentList(CodeAnalysisKeys.Attributes).Any(attr => attr.GetString(CodeAnalysisKeys.Name) == "CakePropertyAliasAttribute")
             })
             .Where(x => x.MethodAlias || x.PropertyAlias)
-            .GroupBy(x => x.Doc.DocumentList(CodeAnalysisKeys.Attributes)
-                .Where(attr => attr.String(CodeAnalysisKeys.Name) == "CakeAliasCategoryAttribute")
+            .GroupBy(x => x.Doc.GetDocumentList(CodeAnalysisKeys.Attributes)
+                .Where(attr => attr.GetString(CodeAnalysisKeys.Name) == "CakeAliasCategoryAttribute")
                 .Select(attr => attr.Get<Microsoft.CodeAnalysis.AttributeData>(CodeAnalysisKeys.AttributeData).ConstructorArguments.FirstOrDefault().Value)
                 .FirstOrDefault() as string ?? string.Empty)
             .OrderBy(x => x.Key);
 }
 
-@foreach(var aliasGroup in aliasGroups)
-{
-    string groupName = string.IsNullOrEmpty(aliasGroup.Key) ? "General" : aliasGroup.Key;
-    <h1 id="@(groupName.Replace(" ", "-"))">@groupName</h1>  
-    <div class="box">
-        <div class="box-body no-padding">
-            <table class="table table-striped table-hover two-cols">
-                @foreach(var alias in aliasGroup.OrderBy(x => x.Doc.String(CodeAnalysisKeys.DisplayName)))
-                {
-                    <tr>
-                        <td>
-                            @if(alias.MethodAlias)
-                            {
-                                <text>@Context.GetTypeLink(alias.Doc)</text>
-                            }
-                            else
-                            {
-                                <text>@Context.GetTypeLink(alias.Doc, alias.Doc.String("Name"))</text>
-                            }
-                        </td>
-                        <td>
-                            @Html.Raw(alias.Doc.String(CodeAnalysisKeys.Summary))
-                            @{
-                                IDocument assemblyDoc = alias.Doc.Document(CodeAnalysisKeys.ContainingAssembly);
-                                if(assemblyDoc != null)
+@if (aliasGroups != null)
+{ 
+    foreach(var aliasGroup in aliasGroups)
+    {
+        string groupName = string.IsNullOrEmpty(aliasGroup.Key) ? "General" : aliasGroup.Key;
+        <h1 id="@(groupName.Replace(" ", "-"))">@groupName</h1>  
+        <div class="box">
+            <div class="box-body no-padding">
+                <table class="table table-striped table-hover two-cols">
+                    @foreach(var alias in aliasGroup.OrderBy(x => x.Doc.GetString(CodeAnalysisKeys.DisplayName)))
+                    {
+                        <tr>
+                            <td>
+                                @if(alias.MethodAlias)
                                 {
-                                    <text>
-                                        <br/>
-                                        <small><i>Addin from @Context.GetTypeLink(assemblyDoc)</i></small>
-                                    </text>
+                                    <text>@Context.GetTypeLink(alias.Doc)</text>
                                 }
-                            }
-                        </td>
-                    </tr>
-                }
-            </table>
+                                else
+                                {
+                                    <text>@Context.GetTypeLink(alias.Doc, alias.Doc.GetString("Name"))</text>
+                                }
+                            </td>
+                            <td>
+                                @Html.Raw(alias.Doc.GetString(CodeAnalysisKeys.Summary))
+                                @{
+                                    IDocument assemblyDoc = alias.Doc.GetDocument(CodeAnalysisKeys.ContainingAssembly);
+                                    if(assemblyDoc != null)
+                                    {
+                                        <text>
+                                            <br/>
+                                            <small><i>Addin from @Context.GetTypeLink(assemblyDoc)</i></small>
+                                        </text>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </div>
         </div>
-    </div>
+    }
 }
