@@ -1,2 +1,3 @@
 AssemblyFiles:
-  - release/addins/**/*.dll
+  - ../release/addins/**/Cake.Issues*.dll
+  #- ../release/addins/Cake.Issues.0.9.1/lib/netstandard2.0/Cake.Issues.dll
