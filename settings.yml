@@ -1,2 +1,2 @@
 AssemblyFiles:
-  - release/addins/**/*.dll
+  - ../release/addins/**/*.dll
